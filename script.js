@@ -3,13 +3,14 @@ const COLS = 6;
 const BLOCK_SIZE = 50;
 const COOLDOWN = 1000;
 let isFlipped = false;
+let scrollLocked = false;
 
 function createTiles(row, col) {
   const tile = document.createElement("div");
   tile.className = "tile";
   tile.innerHTML = `
-  <div class= "tile-face tile-front"></div>
-  <div class= "tile-face tile-back"></div>
+    <div class="tile-face tile-front"></div>
+    <div class="tile-face tile-back"></div>
   `;
 
   const bgPosition = `${col * 20}% ${row * 20}%`;
@@ -63,8 +64,24 @@ function initializeTileAnimation() {
     });
   });
 
-  const flipButton = document.getElementById("flipButton");
-  flipButton.addEventListener("click", () => flipAllTiles(tiles));
+  // Controlled scroll behavior with lock
+  window.addEventListener("scroll", handleScroll);
+}
+
+function handleScroll(event) {
+  if (scrollLocked) {
+    event.preventDefault();
+    return; // Prevent further scrolling while the tiles are flipping
+  }
+
+  scrollLocked = true;
+  const tiles = document.querySelectorAll(".tile");
+
+  flipAllTiles(tiles).then(() => {
+    setTimeout(() => {
+      scrollLocked = false; // Unlock scrolling after flip animation
+    }, 500);
+  });
 }
 
 function animateTile(tile, tileY) {
@@ -90,15 +107,18 @@ function animateTile(tile, tileY) {
 }
 
 function flipAllTiles(tiles) {
-  isFlipped = !isFlipped;
-  gsap.to(tiles, {
-    rotateX: isFlipped ? 180 : 0,
-    duration: 1,
-    stagger: {
-      amount: 0.5,
-      from: "random",
-    },
-    ease: "power2.inOut",
+  return new Promise((resolve) => {
+    isFlipped = !isFlipped;
+    gsap.to(tiles, {
+      rotateX: isFlipped ? 180 : 0,
+      duration: 1,
+      stagger: {
+        amount: 0.5,
+        from: "random",
+      },
+      ease: "power2.inOut",
+      onComplete: resolve,
+    });
   });
 }
 
